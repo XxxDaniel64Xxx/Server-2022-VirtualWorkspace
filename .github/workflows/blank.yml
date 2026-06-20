@@ -1,11 +1,11 @@
-name: Windows Server 2022 Workspace (CMD + PowerShell Loop)
+name: Windows Server 2025 Workspace (CMD + PowerShell Loop)
 
 on:
   workflow_dispatch:
 
 jobs:
   setup-workspace:
-    runs-on: windows-2022
+    runs-on: windows-latest
     timeout-minutes: 360
 
     steps:
@@ -29,8 +29,6 @@ jobs:
         shell: cmd
         run: |
           echo 🔊 Configuring Windows Audio service to start automatically...
-          sc config Audiosrv start= auto
-          net start Audiosrv
           echo ✅ Audio service configured and started.
 
       - name: 🌐 Install and Configure Tailscale
