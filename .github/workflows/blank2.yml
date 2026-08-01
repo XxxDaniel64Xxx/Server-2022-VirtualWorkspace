@@ -13,17 +13,19 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Disabling Server Manager popup on login..."
-          New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Force | Out-Null
-          Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Name "DoNotOpenServerManagerAtLogon" -Value 1
+          New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Force -ErrorAction SilentlyContinue | Out-Null
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Name "DoNotOpenServerManagerAtLogon" -Value 1 -ErrorAction SilentlyContinue
 
       - name: 🌐 Install and Configure Tailscale
         shell: cmd
         run: |
           echo Downloading Tailscale...
           powershell -Command "Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe' -OutFile '%USERPROFILE%\tailscale-setup.exe'"
+          
           echo Installing Tailscale silently...
           "%USERPROFILE%\tailscale-setup.exe" /quiet
-          echo Waiting for Tailscale...
+          
+          echo Waiting for Tailscale to initialize...
           powershell -Command "Start-Sleep -Seconds 20"
           
           if exist "%ProgramFiles%\Tailscale\tailscale.exe" (
@@ -31,6 +33,7 @@ jobs:
           ) else if exist "%ProgramFiles(x86)%\Tailscale\tailscale.exe" (
               set "TAILSCALE_PATH=%ProgramFiles(x86)%\Tailscale\tailscale.exe"
           ) else (
+              echo Tailscale installation failed!
               exit /b 1
           )
           
@@ -44,17 +47,9 @@ jobs:
           Write-Host "Downloading ViGEmBus v1.21.442..."
           Invoke-WebRequest -Uri "https://github.com/nefarius/ViGEmBus/releases/download/v1.21.442.0/ViGEmBus_1.21.442_x64_x86_arm64.exe" -OutFile "ViGEmBus.exe"
           
-          Write-Host "Extracting installer (Bypassing Server OS block)..."
-          # The -Wait flag forces PowerShell to pause until the extraction is fully complete
-          Start-Process -FilePath ".\ViGEmBus.exe" -ArgumentList "/extract", "$PWD\ViGEmBus_Extracted" -Wait -NoNewWindow
+          Write-Host "Installing Virtual Gamepad Emulation Bus Driver silently..."
+          Start-Process -FilePath ".\ViGEmBus.exe" -ArgumentList "/quiet", "/norestart" -Wait -NoNewWindow
           
-          # Small 2-second buffer to ensure the file system registers the new folder
-          Start-Sleep -Seconds 2
-          
-          Write-Host "Installing Virtual Gamepad Emulation Bus Driver..."
-          Set-Location -Path "$PWD\ViGEmBus_Extracted\x64"
-          .\nefconw.exe --create-device-node --hardware-id Nefarius\ViGEmBus\Gen1 --class-name System --class-guid 4D36E97D-E325-11CE-BFC1-08002BE10318
-          .\nefconw.exe --install-driver --inf-path "ViGEmBus.inf"
           Write-Host "ViGEmBus Installed Successfully!"
 
       - name: ☀️ Install Sunshine Game Streaming
