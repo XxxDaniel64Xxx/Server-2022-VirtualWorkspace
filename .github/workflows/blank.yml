@@ -1,90 +1,24 @@
-name: Windows Server 2025 Workspace (CMD + PowerShell Loop)
-
-on:
-  workflow_dispatch:
+name: Micro RDP
+on: workflow_dispatch
 
 jobs:
-  setup-workspace:
+  run:
     runs-on: windows-latest
     timeout-minutes: 360
-
     steps:
-      - name: 🧑 Create User and Configure Groups
-        shell: cmd
+      - shell: powershell
         run: |
-          echo 🔧 Initializing Windows Server 2022 Workspace...
-          echo 👤 Creating local user 'User'...
-          net user User act1-1234 /add
-          echo ✅ User 'User' created.
-
-          echo 🔐 Adding 'User' to Administrators group...
-          net localgroup Administrators User /add
-          echo ✅ User added to Administrators.
-
-          echo 🔐 Adding 'User' to Remote Desktop Users group...
-          net localgroup "Remote Desktop Users" User /add
-          echo ✅ User added to Remote Desktop Users.
-
-      - name: 🎵 Configure Audio Service
-        shell: cmd
-        run: |
-          echo 🔊 Configuring Windows Audio service to start automatically...
-          echo ✅ Audio service configured and started.
-
-      - name: 🌐 Install and Configure Tailscale
-        shell: cmd
-        run: |
-          echo 🔧 Downloading Tailscale installer...
-          powershell -Command "Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe' -OutFile '%USERPROFILE%\tailscale-setup.exe'"
-
-          echo 💻 Installing Tailscale silently...
-          "%USERPROFILE%\tailscale-setup.exe" /quiet
-
-          echo ⏳ Waiting 20 seconds for Tailscale services to initialize...
-          powershell -Command "Start-Sleep -Seconds 20"
-
-          echo 🔍 Detecting installed Tailscale path...
-          if exist "%ProgramFiles%\Tailscale\tailscale.exe" (
-              set "TAILSCALE_PATH=%ProgramFiles%\Tailscale\tailscale.exe"
-          ) else if exist "%ProgramFiles(x86)%\Tailscale\tailscale.exe" (
-              set "TAILSCALE_PATH=%ProgramFiles(x86)%\Tailscale\tailscale.exe"
-          ) else (
-              echo ❌ Tailscale executable not found!
-              exit /b 1
-          )
-
-          echo 🔗 Starting Tailscale for secure remote access...
-          "%TAILSCALE_PATH%" up --hostname=windows2022-workspace
-          echo ✅ Tailscale is running.
-
-      - name: 💬 Display Workspace Info
-        shell: cmd
-        run: |
-          echo ===============================================
-          echo 🏢 Windows Server 2022 Workspace Ready
-          echo -----------------------------------------------
-          echo 💻 Login Information:
-          echo     Username: User
-          echo     Password: act1-1234
-          echo     RDP access enabled
-          echo.
-          echo 🌐 Tailscale hostname: windows2022-workspace
-          echo -----------------------------------------------
-          echo 🌟🐻🧸 MADE BY DANIEL 64. DM IN TELEGRAM @daniel64idk IF SOMETHING IS WRONG OR NOT WORKING 
-          echo ===============================================
-
-      - name: ⏳ Display Minsk Time and Keep-Alive Loop
-        shell: powershell
-        run: |
-          # Show Minsk timezone end time
-          $tz = [System.TimeZoneInfo]::FindSystemTimeZoneById('FLE Standard Time')
-          $endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddHours(6), $tz.Id)
-          Write-Host "🕐 Workspace will remain active until (Minsk time): $endTime"
-
-          # Print Enjoy! once
-          Write-Host "Enjoy!"
-
-          # Infinite silent loop to keep workspace alive
-          while ($true) {
-              Start-Sleep -Seconds 10
-          }
+          # 1. Setup User & RDP
+          net user User act1-1234 /add; net localgroup Administrators User /add; net localgroup "Remote Desktop Users" User /add
+          
+          # 2. Kill Heavy Services & Set CMD as Shell
+          'wuauserv','Spooler','WSearch','Themes' | ForEach-Object { Set-Service -Name $_ -StartupType Disabled }
+          Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value 'cmd.exe'
+          
+          # 3. Install & Launch Tailscale
+          Invoke-WebRequest 'https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe' -OutFile ts.exe
+          Start-Process ts.exe '/quiet' -Wait; Start-Sleep 10
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --hostname=lite-rdp
+          
+          # 4. Keep-Alive (Sleeps efficiently for 6 hours)
+          Start-Sleep 21600
