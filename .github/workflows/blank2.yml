@@ -1,0 +1,100 @@
+name: Windows Server 2022 Gaming Workspace
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-workspace:
+    runs-on: windows-2022
+    timeout-minutes: 360
+
+    steps:
+      - name: 🚀 Optimize Windows for Gaming & UI
+        shell: powershell
+        run: |
+          Write-Host "⚙️ Disabling Server Manager popup on login..."
+          New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Force | Out-Null
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Name "DoNotOpenServerManagerAtLogon" -Value 1
+          
+          Write-Host "🔊 Configuring Windows Audio service..."
+          Set-Service -Name Audiosrv -StartupType Automatic
+          Start-Service -Name Audiosrv
+          
+          Write-Host "⚡ Setting Power Plan to High Performance..."
+          powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+
+      - name: 🌐 Install and Configure Tailscale
+        shell: cmd
+        run: |
+          echo 🔧 Downloading Tailscale...
+          powershell -Command "Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe' -OutFile '%USERPROFILE%\tailscale-setup.exe'"
+          echo 💻 Installing Tailscale silently...
+          "%USERPROFILE%\tailscale-setup.exe" /quiet
+          echo ⏳ Waiting for Tailscale...
+          powershell -Command "Start-Sleep -Seconds 20"
+          
+          if exist "%ProgramFiles%\Tailscale\tailscale.exe" (
+              set "TAILSCALE_PATH=%ProgramFiles%\Tailscale\tailscale.exe"
+          ) else if exist "%ProgramFiles(x86)%\Tailscale\tailscale.exe" (
+              set "TAILSCALE_PATH=%ProgramFiles(x86)%\Tailscale\tailscale.exe"
+          ) else (
+              exit /b 1
+          )
+          
+          echo 🔗 Starting Tailscale...
+          "%TAILSCALE_PATH%" up --hostname=win2022-gaming
+          echo ✅ Tailscale is running.
+
+      - name: 🎮 Install ViGEmBus (Virtual Controller)
+        shell: powershell
+        run: |
+          Write-Host "📥 Downloading ViGEmBus (v1.21.442)..."
+          Invoke-WebRequest -Uri "https://github.com/nefarius/ViGEmBus/releases/download/v1.21.442.0/ViGEmBus_1.21.442_x64_x86_arm64.exe" -OutFile "ViGEmBus.exe"
+          
+          Write-Host "📦 Extracting installer (Bypassing Server OS block)..."
+          .\ViGEmBus.exe /extract .\ViGEmBus_Extracted
+          
+          Write-Host "⚙️ Installing Virtual Gamepad Emulation Bus Driver..."
+          Set-Location -Path ".\ViGEmBus_Extracted\x64"
+          .\nefconw.exe --create-device-node --hardware-id Nefarius\ViGEmBus\Gen1 --class-name System --class-guid 4D36E97D-E325-11CE-BFC1-08002BE10318
+          .\nefconw.exe --install-driver --inf-path "ViGEmBus.inf"
+          Write-Host "✅ ViGEmBus Installed Successfully!"
+
+      - name: ☀️ Install Sunshine Game Streaming
+        shell: powershell
+        run: |
+          Write-Host "📥 Downloading latest Sunshine release..."
+          Invoke-WebRequest -Uri "https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine-windows-installer.exe" -OutFile "sunshine.exe"
+          
+          Write-Host "💻 Installing Sunshine silently..."
+          Start-Process -FilePath ".\sunshine.exe" -ArgumentList "/S" -Wait -NoNewWindow
+          
+          Write-Host "🔥 Configuring Windows Firewall for Moonlight & Web UI..."
+          # Web UI Port (Allows access via Tailscale)
+          netsh advfirewall firewall add rule name="Sunshine Web UI" dir=in action=allow protocol=TCP localport=47990
+          # Moonlight Streaming Ports
+          netsh advfirewall firewall add rule name="Sunshine TCP" dir=in action=allow protocol=TCP localport=47984,47989,48010
+          netsh advfirewall firewall add rule name="Sunshine UDP" dir=in action=allow protocol=UDP localport=47998,47999,48000,48002,48010
+          Write-Host "✅ Sunshine installed and ports opened!"
+
+      - name: 💬 Display Gaming Workspace Info
+        shell: cmd
+        run: |
+          echo ===============================================
+          echo 🎮 Windows Server 2022 GAMING Workspace Ready
+          echo -----------------------------------------------
+          echo 🌐 Tailscale hostname: win2022-gaming
+          echo ☀️ Sunshine Web UI: https://[YOUR-TAILSCALE-IP]:47990
+          echo -----------------------------------------------
+          echo 🌟🐻🧸 MADE BY DANIEL 64. DM IN TELEGRAM @daniel64idk 
+          echo ===============================================
+
+      - name: ⏳ Keep-Alive Loop
+        shell: powershell
+        run: |
+          $tz = [System.TimeZoneInfo]::FindSystemTimeZoneById('FLE Standard Time')
+          $endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddHours(6), $tz.Id)
+          Write-Host "🕐 Workspace active until (Minsk time): $endTime"
+          Write-Host "Enjoy your cloud gaming!"
+          while ($true) { Start-Sleep -Seconds 10 }
+
