@@ -45,10 +45,14 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/nefarius/ViGEmBus/releases/download/v1.21.442.0/ViGEmBus_1.21.442_x64_x86_arm64.exe" -OutFile "ViGEmBus.exe"
           
           Write-Host "Extracting installer (Bypassing Server OS block)..."
-          .\ViGEmBus.exe /extract .\ViGEmBus_Extracted
+          # The -Wait flag forces PowerShell to pause until the extraction is fully complete
+          Start-Process -FilePath ".\ViGEmBus.exe" -ArgumentList "/extract", "$PWD\ViGEmBus_Extracted" -Wait -NoNewWindow
+          
+          # Small 2-second buffer to ensure the file system registers the new folder
+          Start-Sleep -Seconds 2
           
           Write-Host "Installing Virtual Gamepad Emulation Bus Driver..."
-          Set-Location -Path ".\ViGEmBus_Extracted\x64"
+          Set-Location -Path "$PWD\ViGEmBus_Extracted\x64"
           .\nefconw.exe --create-device-node --hardware-id Nefarius\ViGEmBus\Gen1 --class-name System --class-guid 4D36E97D-E325-11CE-BFC1-08002BE10318
           .\nefconw.exe --install-driver --inf-path "ViGEmBus.inf"
           Write-Host "ViGEmBus Installed Successfully!"
