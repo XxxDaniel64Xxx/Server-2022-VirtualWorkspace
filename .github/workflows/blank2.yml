@@ -52,7 +52,7 @@ jobs:
           
           Write-Host "ViGEmBus Installed Successfully!"
 
-      - name: ☀️ Install and Start Sunshine Game Streaming
+      - name: ☀️ Install and Configure Sunshine Game Streaming
         shell: pwsh
         run: |
           Write-Host "Fetching the exact URL for the latest Sunshine release..."
@@ -75,7 +75,18 @@ jobs:
           netsh advfirewall firewall add rule name="Sunshine Stream TCP" dir=in action=allow protocol=TCP localport=47984,47989,48010 profile=any
           netsh advfirewall firewall add rule name="Sunshine Stream UDP" dir=in action=allow protocol=UDP localport=47998,47999,48000,48002,48010 profile=any
 
-          Write-Host "Launching Sunshine background process..."
+          Write-Host "Configuring Sunshine to accept external Tailscale traffic..."
+          $configDir = "$env:ProgramData\Sunshine"
+          if (-not (Test-Path $configDir)) {
+              New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+          }
+          $configFile = "$configDir\sunshine.conf"
+          
+          # Force Sunshine to bind to all interfaces so Tailscale traffic can reach port 47990
+          "origin = *" | Out-File -FilePath $configFile -Encoding ascii
+          "address_family = dual" | Out-File -FilePath $configFile -Append -Encoding ascii
+
+          Write-Host "Launching Sunshine service/process..."
           $sunshinePath = "C:\Program Files\Sunshine\sunshine.exe"
           if (-not (Test-Path $sunshinePath)) {
               $sunshinePath = "${env:ProgramFiles(x86)}\Sunshine\sunshine.exe"
@@ -83,9 +94,9 @@ jobs:
           
           if (Test-Path $sunshinePath) {
               Start-Process -FilePath $sunshinePath -WindowStyle Hidden
-              Write-Host "Sunshine started successfully!"
+              Write-Host "Sunshine launched successfully!"
           } else {
-              Write-Host "Warning: Sunshine executable path not automatically resolved, check standard paths."
+              Write-Host "Warning: Sunshine path not found automatically."
           }
 
       - name: 💬 Display Gaming Workspace Info
@@ -95,7 +106,7 @@ jobs:
           echo Windows Latest GAMING Workspace Ready
           echo -----------------------------------------------
           echo Tailscale hostname: win-gaming-latest
-          echo Sunshine Web UI: https://[YOUR-TAILSCALE-IP]:47990
+          echo Sunshine Web UI: http://[YOUR-TAILSCALE-IP]:47990
           echo -----------------------------------------------
           echo MADE BY DANIEL 64. DM IN TELEGRAM @daniel64idk 
           echo ===============================================
