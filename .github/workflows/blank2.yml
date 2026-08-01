@@ -55,8 +55,17 @@ jobs:
       - name: ☀️ Install Sunshine Game Streaming
         shell: pwsh
         run: |
-          Write-Host "Downloading latest Sunshine release..."
-          Invoke-WebRequest -Uri "https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine-windows-installer.exe" -OutFile "sunshine.exe"
+          Write-Host "Fetching the exact URL for the latest Sunshine release..."
+          $apiResponse = Invoke-RestMethod -Uri "https://api.github.com/repos/LizardByte/Sunshine/releases/latest"
+          $downloadUrl = ($apiResponse.assets | Where-Object { $_.name -like "*windows*.exe" }).browser_download_url | Select-Object -First 1
+          
+          if (-not $downloadUrl) {
+              Write-Host "Error: Could not find the Windows installer in the latest release!"
+              exit 1
+          }
+          
+          Write-Host "Downloading Sunshine from: $downloadUrl"
+          Invoke-WebRequest -Uri $downloadUrl -OutFile "sunshine.exe"
           
           Write-Host "Installing Sunshine silently..."
           Start-Process -FilePath ".\sunshine.exe" -ArgumentList "/S" -Wait -NoNewWindow
@@ -89,3 +98,4 @@ jobs:
           Write-Host "Workspace active until (Minsk time): $endTime"
           Write-Host "Enjoy your cloud gaming!"
           while ($true) { Start-Sleep -Seconds 10 }
+
