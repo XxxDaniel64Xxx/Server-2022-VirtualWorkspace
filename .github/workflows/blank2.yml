@@ -52,7 +52,7 @@ jobs:
           
           Write-Host "ViGEmBus Installed Successfully!"
 
-      - name: ☀️ Install Sunshine Game Streaming
+      - name: ☀️ Install and Start Sunshine Game Streaming
         shell: pwsh
         run: |
           Write-Host "Fetching the exact URL for the latest Sunshine release..."
@@ -70,13 +70,23 @@ jobs:
           Write-Host "Installing Sunshine silently..."
           Start-Process -FilePath ".\sunshine.exe" -ArgumentList "/S" -Wait -NoNewWindow
           
-          Write-Host "Configuring Windows Firewall for Moonlight & Web UI..."
-          # Web UI Port (Allows access via Tailscale)
-          netsh advfirewall firewall add rule name="Sunshine Web UI" dir=in action=allow protocol=TCP localport=47990
-          # Moonlight Streaming Ports
-          netsh advfirewall firewall add rule name="Sunshine TCP" dir=in action=allow protocol=TCP localport=47984,47989,48010
-          netsh advfirewall firewall add rule name="Sunshine UDP" dir=in action=allow protocol=UDP localport=47998,47999,48000,48002,48010
-          Write-Host "Sunshine installed and ports opened!"
+          Write-Host "Configuring Windows Firewall for all profiles..."
+          netsh advfirewall firewall add rule name="Sunshine Web UI" dir=in action=allow protocol=TCP localport=47990 profile=any
+          netsh advfirewall firewall add rule name="Sunshine Stream TCP" dir=in action=allow protocol=TCP localport=47984,47989,48010 profile=any
+          netsh advfirewall firewall add rule name="Sunshine Stream UDP" dir=in action=allow protocol=UDP localport=47998,47999,48000,48002,48010 profile=any
+
+          Write-Host "Launching Sunshine background process..."
+          $sunshinePath = "C:\Program Files\Sunshine\sunshine.exe"
+          if (-not (Test-Path $sunshinePath)) {
+              $sunshinePath = "${env:ProgramFiles(x86)}\Sunshine\sunshine.exe"
+          }
+          
+          if (Test-Path $sunshinePath) {
+              Start-Process -FilePath $sunshinePath -WindowStyle Hidden
+              Write-Host "Sunshine started successfully!"
+          } else {
+              Write-Host "Warning: Sunshine executable path not automatically resolved, check standard paths."
+          }
 
       - name: 💬 Display Gaming Workspace Info
         shell: cmd
@@ -98,4 +108,3 @@ jobs:
           Write-Host "Workspace active until (Minsk time): $endTime"
           Write-Host "Enjoy your cloud gaming!"
           while ($true) { Start-Sleep -Seconds 10 }
-
