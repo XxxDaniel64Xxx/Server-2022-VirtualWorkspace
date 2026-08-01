@@ -1,11 +1,11 @@
-name: Windows Server 2022 Gaming Workspace
+name: Windows Server Gaming Workspace
 
 on:
   workflow_dispatch:
 
 jobs:
   setup-workspace:
-    runs-on: windows-2022
+    runs-on: windows-latest
     timeout-minutes: 360
 
     steps:
@@ -15,13 +15,6 @@ jobs:
           Write-Host "⚙️ Disabling Server Manager popup on login..."
           New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Force | Out-Null
           Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager" -Name "DoNotOpenServerManagerAtLogon" -Value 1
-          
-          Write-Host "🔊 Configuring Windows Audio service..."
-          Set-Service -Name Audiosrv -StartupType Automatic
-          Start-Service -Name Audiosrv
-          
-          Write-Host "⚡ Setting Power Plan to High Performance..."
-          powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 
       - name: 🌐 Install and Configure Tailscale
         shell: cmd
@@ -42,7 +35,7 @@ jobs:
           )
           
           echo 🔗 Starting Tailscale...
-          "%TAILSCALE_PATH%" up --hostname=win2022-gaming
+          "%TAILSCALE_PATH%" up --hostname=win-gaming-latest
           echo ✅ Tailscale is running.
 
       - name: 🎮 Install ViGEmBus (Virtual Controller)
@@ -81,9 +74,9 @@ jobs:
         shell: cmd
         run: |
           echo ===============================================
-          echo 🎮 Windows Server 2022 GAMING Workspace Ready
+          echo 🎮 Windows Latest GAMING Workspace Ready
           echo -----------------------------------------------
-          echo 🌐 Tailscale hostname: win2022-gaming
+          echo 🌐 Tailscale hostname: win-gaming-latest
           echo ☀️ Sunshine Web UI: https://[YOUR-TAILSCALE-IP]:47990
           echo -----------------------------------------------
           echo 🌟🐻🧸 MADE BY DANIEL 64. DM IN TELEGRAM @daniel64idk 
@@ -97,4 +90,3 @@ jobs:
           Write-Host "🕐 Workspace active until (Minsk time): $endTime"
           Write-Host "Enjoy your cloud gaming!"
           while ($true) { Start-Sleep -Seconds 10 }
-
