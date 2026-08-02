@@ -5,7 +5,7 @@ on:
 
 jobs:
   setup-workspace:
-    runs-on: windows-2022
+    runs-on: windows-latest
     timeout-minutes: 360
 
     steps:
@@ -82,7 +82,7 @@ jobs:
           }
           $configFile = "$configDir\sunshine.conf"
           
-          # Fixes CSRF error using the updated configuration directive
+          # Use the modern configuration keys to allow external/Tailscale origins
           $configContent = @(
               "origin_web_ui_allowed = *"
               "address_family = dual"
@@ -122,3 +122,4 @@ jobs:
           Write-Host "Workspace active until (Minsk time): $endTime"
           Write-Host "Enjoy your cloud gaming!"
           while ($true) { Start-Sleep -Seconds 10 }
+
