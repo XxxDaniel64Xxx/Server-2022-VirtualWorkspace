@@ -11,14 +11,18 @@ jobs:
           # 1. Setup User & RDP
           net user User act1-1234 /add; net localgroup Administrators User /add; net localgroup "Remote Desktop Users" User /add
           
-          # 2. Kill Heavy Services & Set CMD as Shell
+          # 2. Kill Heavy Services
           'wuauserv','Spooler','WSearch','Themes' | ForEach-Object { Set-Service -Name $_ -StartupType Disabled }
-          Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value 'cmd.exe'
           
-          # 3. Install & Launch Tailscale
+          # 3. Install Lightweight Taskbar (RetroBar) & Set as Shell
+          Invoke-WebRequest "https://github.com/dremin/RetroBar/releases/latest/download/RetroBar.Portable.64-bit.zip" -OutFile "C:\RetroBar.zip"
+          Expand-Archive -Path "C:\RetroBar.zip" -DestinationPath "C:\RetroBar" -Force
+          Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value 'C:\RetroBar\RetroBar.exe'
+          
+          # 4. Install & Launch Tailscale
           Invoke-WebRequest 'https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe' -OutFile ts.exe
           Start-Process ts.exe '/quiet' -Wait; Start-Sleep 10
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --hostname=lite-rdp
           
-          # 4. Keep-Alive (Sleeps efficiently for 6 hours)
+          # 5. Keep-Alive (Sleeps efficiently for 6 hours)
           Start-Sleep 21600
