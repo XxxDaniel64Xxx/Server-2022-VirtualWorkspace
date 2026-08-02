@@ -75,15 +75,16 @@ jobs:
           netsh advfirewall firewall add rule name="Sunshine Stream TCP" dir=in action=allow protocol=TCP localport=47984,47989,48010 profile=any
           netsh advfirewall firewall add rule name="Sunshine Stream UDP" dir=in action=allow protocol=UDP localport=47998,47999,48000,48002,48010 profile=any
 
-          Write-Host "Configuring Sunshine to accept external Tailscale traffic..."
+          Write-Host "Configuring Sunshine config to bypass CSRF and allow Tailscale..."
           $configDir = "$env:ProgramData\Sunshine"
           if (-not (Test-Path $configDir)) {
               New-Item -ItemType Directory -Path $configDir -Force | Out-Null
           }
           $configFile = "$configDir\sunshine.conf"
           
-          # Force Sunshine to bind to all interfaces so Tailscale traffic can reach port 47990
+          # Fixes CSRF error by allowing all origins, binds safely
           "origin = *" | Out-File -FilePath $configFile -Encoding ascii
+          "csrf_allowed_origins = *" | Out-File -FilePath $configFile -Append -Encoding ascii
           "address_family = dual" | Out-File -FilePath $configFile -Append -Encoding ascii
 
           Write-Host "Launching Sunshine service/process..."
