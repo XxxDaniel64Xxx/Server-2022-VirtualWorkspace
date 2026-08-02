@@ -14,10 +14,14 @@ jobs:
           # 2. Kill Heavy Services
           'wuauserv','Spooler','WSearch','Themes' | ForEach-Object { Set-Service -Name $_ -StartupType Disabled }
           
-          # 3. Install Lightweight Taskbar (RetroBar) & Set as Shell
-          Invoke-WebRequest "https://github.com/dremin/RetroBar/releases/latest/download/RetroBar.Portable.64-bit.zip" -OutFile "C:\RetroBar.zip"
-          Expand-Archive -Path "C:\RetroBar.zip" -DestinationPath "C:\RetroBar" -Force
-          Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name Shell -Value 'C:\RetroBar\RetroBar.exe'
+          # 3. Free Up Drive Space (Delete Android SDK/NDK folders)
+          Write-Host "Removing Android libraries to reclaim disk space..."
+          $androidPaths = @($env:ANDROID_HOME, $env:ANDROID_NDK_HOME, "C:\Microsoft\AndroidNDK*")
+          foreach ($path in $androidPaths) {
+              if ($path -and (Test-Path $path)) {
+                  Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
+              }
+          }
           
           # 4. Install & Launch Tailscale
           Invoke-WebRequest 'https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe' -OutFile ts.exe
